@@ -1,0 +1,94 @@
+import requests
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import plotly.graph_objs as go
+from dash.dependencies import Input, Output, State
+import pandas_datareader.data as web # requires v0.6.0 or later
+from datetime import datetime
+import pandas as pd
+import json
+
+dictionary1={}
+dictionary2={}
+dictionary3={}
+dictionary4={}
+
+BS = requests.get('https://financialmodelingprep.com/api/v3/financials/balance-sheet-statement/AAPL?apikey=201a1a8e10bd6a7e292dec2384c28058').json()
+dictionary1['company']='APPLE'
+dictionary1['current_ratio']=float(BS['financials'][0]['Total current assets'])/float(BS['financials'][0]['Total current liabilities'])
+dictionary1['cash_ratio']=float(BS['financials'][0]['Cash and cash equivalents'])/float(BS['financials'][0]['Total current liabilities'])
+dictionary1['debt_ratio']=float(BS['financials'][0]['Total current liabilities'])/float(BS['financials'][0]['Total current assets'])
+dictionary1['debt_equity_ratio']=float(BS['financials'][0]['Total current liabilities'])/float(BS['financials'][0]['Total shareholders equity'])
+
+CS = requests.get('https://financialmodelingprep.com/api/v3/financials/balance-sheet-statement/AMZN?apikey=201a1a8e10bd6a7e292dec2384c28058').json()
+dictionary2['company']='AMAZON'
+dictionary2['current_ratio']=float(CS['financials'][0]['Total current assets'])/float(CS['financials'][0]['Total current liabilities'])
+dictionary2['cash_ratio']=float(CS['financials'][0]['Cash and cash equivalents'])/float(CS['financials'][0]['Total current liabilities'])
+dictionary2['debt_ratio']=float(CS['financials'][0]['Total current liabilities'])/float(CS['financials'][0]['Total current assets'])
+dictionary2['debt_equity_ratio']=float(CS['financials'][0]['Total current liabilities'])/float(CS['financials'][0]['Total shareholders equity'])
+
+DS = requests.get('https://financialmodelingprep.com/api/v3/financials/balance-sheet-statement/GOOGL?apikey=201a1a8e10bd6a7e292dec2384c28058').json()
+dictionary3['company']='GOOGLE'
+dictionary3['current_ratio']=float(DS['financials'][0]['Total current assets'])/float(DS['financials'][0]['Total current liabilities'])
+dictionary3['cash_ratio']=float(DS['financials'][0]['Cash and cash equivalents'])/float(DS['financials'][0]['Total current liabilities'])
+dictionary3['debt_ratio']=float(DS['financials'][0]['Total current liabilities'])/float(DS['financials'][0]['Total current assets'])
+dictionary3['debt_equity_ratio']=float(DS['financials'][0]['Total current liabilities'])/float(DS['financials'][0]['Total shareholders equity'])
+
+ES = requests.get('https://financialmodelingprep.com/api/v3/financials/balance-sheet-statement/GOOGL?apikey=201a1a8e10bd6a7e292dec2384c28058').json()
+dictionary4['company']='MICROSOFT'
+dictionary4['current_ratio']=float(ES['financials'][0]['Total current assets'])/float(ES['financials'][0]['Total current liabilities'])
+dictionary4['cash_ratio']=float(ES['financials'][0]['Cash and cash equivalents'])/float(ES['financials'][0]['Total current liabilities'])
+dictionary4['debt_ratio']=float(ES['financials'][0]['Total current liabilities'])/float(ES['financials'][0]['Total current assets'])
+dictionary4['debt_equity_ratio']=float(ES['financials'][0]['Total current liabilities'])/float(ES['financials'][0]['Total shareholders equity'])
+
+dictionary=[dictionary1,dictionary2,dictionary3,dictionary4]
+
+df=pd.DataFrame.from_dict(dictionary)
+first=df.pop('company')
+df.insert(0,'company',first)
+
+app=dash.Dash()
+available_company = df['company']
+available_metrics= df.columns
+
+app.layout = html.Div([
+                      html.H1('Ratio graph'),
+                      html.Div([
+                              dcc.Dropdown(
+                                  id='xaxis',
+                                  options=[{'label': 'company', 'value': 'company'}],
+                                  value='company'
+                              )],style={'width': '48%', 'display': 'inline-block'})
+                              ,
+                              html.Div([
+                                      dcc.Dropdown(
+                                          id='yaxis',
+                                          options=[{'label': i, 'value': i} for i in available_metrics],
+                                          value='current_ratio'
+                                      )],style={'width': '48%', 'float': 'right', 'display': 'inline-block'})
+                                      ,
+                      html.Div([
+                                dcc.Graph(id='Ratio_graph')
+
+                      ],style={'width':'50%','display':'inline_block'})
+])
+
+@app.callback(
+    Output('Ratio_graph', 'figure'),
+    [Input('xaxis', 'value'),
+     Input('yaxis', 'value')])
+
+def update_graph(xaxis_name,yaxis_name):
+        return {'data': [go.Bar(
+            x=df[xaxis_name],
+            y=df[yaxis_name]
+        )],
+        'layout': go.Layout(
+        xaxis={'title': xaxis_name.title()},
+        yaxis={'title': yaxis_name.title()},
+        )
+    }
+
+if __name__ == '__main__':
+    app.run_server()
